@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <title>OCR Split Bill</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <h2>Scan Struk Split Bill</h2>
+    <input type="file" id="upload-struk" accept="image/*">
+    <div id="status">Pilih foto struk...</div>
+    <pre id="hasil-teks"></pre>
+
+    <script>
+        const fileInput = document.getElementById('upload-struk');
+        const status = document.getElementById('status');
+        const output = document.getElementById('hasil-teks');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            status.innerText = "Sedang memproses... Tunggu sebentar.";
+
+            Tesseract.recognize(file, 'ind') // 'ind' untuk Bahasa Indonesia
+                .then(({ data: { text } }) => {
+                    status.innerText = "Selesai!";
+                    output.innerText = text; // Teks hasil scan muncul di sini
+                });
+        });
+    </script>
+</body>
+</html>
