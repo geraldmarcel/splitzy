@@ -1,30 +1,94 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>OCR Split Bill</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitzy - AI Split Bill</title>
+    <style>
+        :root { --primary: #007bff; --success: #28a745; --bg: #f4f7f6; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; width: 100%; max-width: 500px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        .upload-box { border: 2px dashed #ccc; padding: 40px 20px; text-align: center; border-radius: 15px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; }
+        .upload-box:hover { border-color: var(--primary); background: #f0f7ff; }
+        #imageInput { display: none; }
+        #status { text-align: center; font-weight: bold; margin-bottom: 20px; min-height: 24px; }
+        .result-card { border: 1px solid #eee; border-radius: 10px; padding: 15px; background: #fafafa; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+        .conf { color: #888; font-size: 11px; }
+    </style>
 </head>
 <body>
-    <h2>Scan Struk Split Bill</h2>
-    <input type="file" id="upload-struk" accept="image/*">
-    <div id="status">Pilih foto struk...</div>
-    <pre id="hasil-teks"></pre>
 
-    <script>
-        const fileInput = document.getElementById('upload-struk');
-        const status = document.getElementById('status');
-        const output = document.getElementById('hasil-teks');
+<div class="container">
+    <h1>Splitzy 🧾</h1>
+    <p style="text-align:center; color:#666; margin-bottom:30px;">Scan struk belanja jadi teks otomatis.</p>
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            status.innerText = "Sedang memproses... Tunggu sebentar.";
+    <label for="imageInput" class="upload-box" id="dropArea">
+        <strong>Pilih atau Foto Struk</strong>
+        <p style="font-size: 12px; color: #999;">PNG, JPG atau JPEG</p>
+    </label>
+    <input type="file" id="imageInput" accept="image/*">
 
-            Tesseract.recognize(file, 'ind') // 'ind' untuk Bahasa Indonesia
-                .then(({ data: { text } }) => {
-                    status.innerText = "Selesai!";
-                    output.innerText = text; // Teks hasil scan muncul di sini
-                });
-        });
-    </script>
+    <div id="status"></div>
+
+    <div id="resultArea" style="display:none;">
+        <div class="result-card">
+            <h3 style="margin-top:0; font-size:16px;">Hasil Scan:</h3>
+            <div id="itemList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const status = document.getElementById('status');
+    const itemList = document.getElementById('itemList');
+    const resultArea = document.getElementById('resultArea');
+
+    imageInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        status.style.color = "#ef6c00";
+        status.innerText = "⏳ Memproses AI... Tunggu sebentar";
+        itemList.innerHTML = "";
+        resultArea.style.display = "none";
+
+        try {
+            // Path relatif '/scan' akan otomatis mengarah ke domain Hugging Face kamu
+            const response = await fetch('/scan', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error);
+
+            status.style.color = "var(--success)";
+            status.innerText = "✅ Berhasil Scan!";
+            resultArea.style.display = "block";
+
+            data.results.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'item-row';
+                row.innerHTML = `
+                    <span>${item.text}</span>
+                    <span class="conf">${Math.round(item.confidence * 100)}%</span>
+                `;
+                itemList.appendChild(row);
+            });
+        } catch (err) {
+            status.style.color = "#d32f2f";
+            status.innerText = "❌ Gagal memproses gambar.";
+            console.error(err);
+        }
+    });
+</script>
+
 </body>
 </html>
